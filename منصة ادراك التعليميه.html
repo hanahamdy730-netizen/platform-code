@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة إدراك التعليمية - المنصة الشاملة للمدرسين والطلاب</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        accent: {
+                            50: '#fdf4ff',
+                            500: '#d946ef',
+                            600: '#c026d3',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <div id="toast-container" class="fixed top-5 left-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <div id="auth-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in border border-slate-100">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-brand-600 to-indigo-700 p-6 text-white text-center relative">
+                <button onclick="closeAuthModal()" class="absolute top-4 left-4 text-white/80 hover:text-white text-xl w-8 h-8 rounded-full bg-white/10 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+                    <i class="fa-solid fa-graduation-cap text-3xl text-white"></i>
+                </div>
+                <h3 id="auth-modal-title" class="text-2xl font-bold">تسجيل الدخول إلى إدراك</h3>
+                <p class="text-brand-100 text-sm mt-1">منصتك التعليمية الأولى لشرح المناهج والاختبارات</p>
+            </div>
+
+            <!-- Modal Body / Tabs -->
+            <div class="p-6">
+                <!-- Tab selector -->
+                <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
+                    <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-bold rounded-lg transition bg-white text-brand-600 shadow-sm">دخول</button>
+                    <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2 text-sm font-bold rounded-lg transition text-slate-600 hover:text-slate-900">حساب جديد</button>
+                </div>
+
+                <!-- Social Login Buttons -->
+                <div class="space-y-3 mb-6">
+                    <button onclick="socialLogin('Google')" class="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-slate-200 rounded-xl font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm">
+                        <i class="fa-brands fa-google text-red-500 text-lg"></i>
+                        <span>المتابعة باستخدام جوجل</span>
+                    </button>
+                    <button onclick="socialLogin('Facebook')" class="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl font-semibold transition shadow-sm">
+                        <i class="fa-brands fa-facebook text-lg"></i>
+                        <span>المتابعة باستخدام فيسبوك</span>
+                    </button>
+                </div>
+
+                <div class="relative flex py-2 items-center mb-6">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-4 text-slate-400 text-xs uppercase tracking-wider">أو بالطريقة اليدوية</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+
+                <!-- Manual Form -->
+                <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                    <div id="name-field-wrapper" class="hidden">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">الاسم الكامل</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400"><i class="fa-solid fa-user"></i></span>
+                            <input type="text" id="auth-name" placeholder="أدخل اسمك الثلاثي" class="w-full pr-10 pl-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">البريد الإلكتروني</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400"><i class="fa-solid fa-envelope"></i></span>
+                            <input type="email5" id="auth-email" required placeholder="name@example.com" class="w-full pr-10 pl-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">كلمة المرور</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" id="auth-password" required placeholder="••••••••" class="w-full pr-10 pl-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-600/30 transition">
+                        تسجيل الدخول
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="role-grade-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-fade-in border border-slate-100 p-6">
+            <div class="text-center mb-6">
+                <span class="px-3 py-1 bg-brand-50 text-brand-600 text-xs font-bold rounded-full">خطوة أخيرة لإتمام حسابك</span>
+                <h3 class="text-2xl font-bold text-slate-800 mt-2">حدد هويتك الأكاديمية</h3>
+                <p class="text-slate-500 text-sm">اختر ما إذا كنت مدرساً تنشر الشرح أو طالباً تتلقى العلم</p>
+            </div>
+
+            <!-- Role Selector Cards -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div onclick="selectRoleOption('student')" id="role-card-student" class="cursor-pointer border-2 border-brand-500 bg-brand-50/50 rounded-2xl p-4 text-center transition hover:shadow-md relative">
+                    <span class="absolute top-3 left-3 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs check-icon"><i class="fa-solid fa-check"></i></span>
+                    <div class="w-14 h-14 bg-brand-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-brand-600 text-2xl">
+                        <i class="fa-solid fa-user-graduate"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800">طالب</h4>
+                    <p class="text-xs text-slate-500 mt-1">مشاهدة الفيديوهات وحل الاختبارات</p>
+                </div>
+                <div onclick="selectRoleOption('teacher')" id="role-card-teacher" class="cursor-pointer border-2 border-slate-200 bg-white rounded-2xl p-4 text-center transition hover:shadow-md relative">
+                    <span class="absolute top-3 left-3 w-5 h-5 rounded-full bg-slate-200 text-white flex items-center justify-center text-xs check-icon hidden"><i class="fa-solid fa-check"></i></span>
+                    <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-600 text-2xl">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800">مدرس</h4>
+                    <p class="text-xs text-slate-500 mt-1">رفع الشرح، وضع الاختبارات وجني الأرباح</p>
+                </div>
+            </div>
+
+            <!-- Grade Level Selector (Only for Student) -->
+            <div id="grade-selection-container" class="mb-6">
+                <label class="block text-xs font-bold text-slate-700 mb-2">اختر الصف الدراسي الخاص بك:</label>
+                <select id="user-grade-level" class="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 bg-white">
+                    <optgroup label="المرحلة الابتدائية">
+                        <option value="الصف الرابع الابتدائي">الصف الرابع الابتدائي</option>
+                        <option value="الصف الخامس الابتدائي">الصف الخامس الابتدائي</option>
+                        <option value="الصف السادس الابتدائي">الصف السادس الابتدائي</option>
+                    </optgroup>
+                    <optgroup label="المرحلة الإعدادية">
+                        <option value="الصف الأول الإعدادي">الصف الأول الإعدادي</option>
+                        <option value="الصف الثاني الإعدادي">الصف الثاني الإعدادي</option>
+                        <option value="الصف الثالث الإعدادي">الصف الثالث الإعدادي</option>
+                    </optgroup>
+                    <optgroup label="المرحلة الثانوية">
+                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                    </optgroup>
+                    <optgroup label="الجامعات والكليات">
+                        <option value="الجامعات والكليات (عام)">الجامعات والكليات (جميع التخصصات)</option>
+                        <option value="كلية الهندسة والتكنولوجيا">كلية الهندسة والتكنولوجيا</option>
+                        <option value="كلية الطب والعلوم الطبية">كلية الطب والعلوم الطبية</option>
+                        <option value="كلية التجارة وإدارة الأعمال">كلية التجارة وإدارة الأعمال</option>
+                        <option value="كلية الآداب واللغات">كلية الآداب واللغات</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <button onclick="saveRoleAndGrade()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-600/30 transition">
+                حفظ والمتابعة إلى المنصة <i class="fa-solid fa-arrow-left mr-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home')">
+                <div class="w-12 h-12 bg-gradient-to-tr from-brand-600 to-indigo-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black text-slate-800 tracking-tight">منصة إدراك التعليمية</h1>
+                    <p class="text-xs text-brand-600 font-bold">بوابة المدرسين والطلاب الأولي</p>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center gap-6 font-semibold text-sm text-slate-600">
+                <button onclick="navigateTo('home')" class="hover:text-brand-600 transition flex items-center gap-1.5"><i class="fa-solid fa-house"></i> الرئيسية</button>
+                <button onclick="navigateTo('subjects')" class="hover:text-brand-600 transition flex items-center gap-1.5"><i class="fa-solid fa-book-open"></i> الأقسام الدراسية</button>
+                <button onclick="navigateTo('teachers')" class="hover:text-brand-600 transition flex items-center gap-1.5"><i class="fa-solid fa-chalkboard-user"></i> نخبة المعلمين</button>
+                <button onclick="navigateTo('leaderboard')" class="hover:text-brand-600 transition flex items-center gap-1.5"><i class="fa-solid fa-trophy"></i> لوحة المتفوقين</button>
+                <button onclick="navigateTo('monetization')" class="hover:text-brand-600 transition flex items-center gap-1.5 text-emerald-600 font-bold"><i class="fa-solid fa-wallet"></i> نظام الأرباح والدخل</button>
+            </nav>
+
+            <!-- User Auth & Dashboard Actions -->
+            <div class="flex items-center gap-3">
+                <div id="guest-actions" class="flex items-center gap-2">
+                    <button onclick="openAuthModal('login')" class="px-4 py-2 text-sm font-bold text-brand-600 hover:bg-brand-50 rounded-xl transition">تسجيل الدخول</button>
+                    <button onclick="openAuthModal('register')" class="px-4 py-2 text-sm font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-md shadow-brand-600/20 transition">إنشاء حساب مجاني</button>
+                </div>
+                <div id="user-logged-actions" class="hidden flex items-center gap-3">
+                    <div class="hidden sm:block text-left">
+                        <span id="nav-user-name" class="block text-xs font-bold text-slate-800"></span>
+                        <span id="nav-user-role" class="block text-[10px] text-brand-600 font-bold bg-brand-50 px-2 py-0.5 rounded-full mt-0.5 text-center"></span>
+                    </div>
+                    <button onclick="openUserDashboard()" class="p-2.5 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl transition relative" title="لوحة التحكم">
+                        <i class="fa-solid fa-gauge-high text-lg"></i>
+                    </button>
+                    <button onclick="logoutUser()" class="p-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition" title="تسجيل الخروج">
+                        <i class="fa-solid fa-right-from-bracket text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow">
+
+        <!-- 1. HOME VIEW -->
+        <section id="view-home" class="view-section">
+            <!-- Hero Banner -->
+            <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-brand-900 text-white py-16 px-4 relative overflow-hidden">
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+                    <div>
+                        <span class="px-3.5 py-1.5 bg-brand-500/20 text-brand-300 border border-brand-500/30 rounded-full text-xs font-bold inline-flex items-center gap-2 mb-4">
+                            <i class="fa-solid fa-bolt text-amber-400"></i> المنصة التعليمية الذكية الأولى في الوطن العربي
+                        </span>
+                        <h1 class="text-4xl sm:text-5xl font-black leading-tight tracking-tight mb-6">
+                            تعلم بفهم، وامتحن بذكاء، <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-accent-500">واكسب من تفوقك!</span>
+                        </h1>
+                        <p class="text-slate-300 text-base sm:text-lg mb-8 leading-relaxed">
+                            منصة متكاملة تجمع أفضل المعلمين والطلاب. شاهد فيديوهات الشرح في كافة المواد من الصف الرابع الابتدائي وحتى الجامعات والكليات، واختبر معلوماتك مع نظام تقييم فوري ونظام أرباح تصاعدي للمدرسين وصناع المحتوى.
+                        </p>
+                        <div class="flex flex-wrap gap-4">
+                            <button onclick="navigateTo('subjects')" class="px-6 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl shadow-xl shadow-brand-600/40 transition flex items-center gap-2">
+                                <i class="fa-solid fa-compass"></i> تصفح الأقسام والمناهج
+                            </button>
+                            <button onclick="openAuthModal('register')" class="px-6 py-3.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl backdrop-blur-md transition flex items-center gap-2">
+                                <i class="fa-solid fa-user-plus"></i> انضم كمدرس أو طالب
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <div class="bg-gradient-to-tr from-brand-600/30 to-accent-500/30 p-2 rounded-3xl backdrop-blur-xl border border-white/10 shadow-2xl">
+                            <div class="bg-slate-900 rounded-2xl p-6 text-white space-y-4">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                                            <i class="fa-solid fa-video"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-sm">درس الرياضيات المتقدمة</h4>
+                                            <p class="text-xs text-slate-400">أ. أحمد الصفتي - الصف الثالث الثانوي</p>
+                                        </div>
+                                    </div>
+                                    <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full">متاح الآن</span>
+                                </div>
+                                <div class="bg-slate-800/80 p-4 rounded-xl flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center">
+                                            <i class="fa-solid fa-award"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-bold">اختبار تفاعلي معتمد</div>
+                                            <div class="text-[10px] text-slate-400">10 أسئلة - أرباح فورية للمجتازين</div>
+                                        </div>
+                                    </div>
+                                    <button onclick="navigateTo('subjects')" class="px-3 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-lg">ابدأ الحل</button>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 pt-2 text-center">
+                                    <div class="bg-slate-800/50 p-2.5 rounded-xl">
+                                        <div class="text-brand-400 font-bold text-lg">+1,500</div>
+                                        <div class="text-[10px] text-slate-400">فيديو شرح</div>
+                                    </div>
+                                    <div class="bg-slate-800/50 p-2.5 rounded-xl">
+                                        <div class="text-emerald-400 font-bold text-lg">+850</div>
+                                        <div class="text-[10px] text-slate-400">امتحان وتمرين</div>
+                                    </div>
+                                    <div class="bg-slate-800/50 p-2.5 rounded-xl">
+                                        <div class="text-amber-400 font-bold text-lg">100%</div>
+                                        <div class="text-[10px] text-slate-400">أرباح مضمونة للمدرس</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subjects Grid Section -->
+            <div class="py-16 px-4 max-w-7xl mx-auto">
+                <div class="text-center max-w-2xl mx-auto mb-12">
+                    <span class="text-brand-600 font-bold text-xs uppercase tracking-widest bg-brand-50 px-3 py-1 rounded-full">الأقسام والمناهج الأكاديمية</span>
+                    <h2 class="text-3xl font-black text-slate-800 mt-3">اختر القسم الدراسي وابدأ التعلم الفوري</h2>
+                    <p class="text-slate-500 text-sm mt-2">نغطي كافة المواد الأساسية والتخصصات من المرحلة الابتدائية حتى الجامعات</p>
+                </div>
+
+                <div id="home-subjects-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Dynamic Subjects Rendered via JS -->
+                </div>
+            </div>
+
+            <!-- Features Highlights -->
+            <div class="bg-slate-100 py-16 px-4">
+                <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="w-14 h-14 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center text-2xl mb-4">
+                            <i class="fa-solid fa-video"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-2">فيديوهات شرح احترافية</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">شروحات مفصلة من كبار المعلمين مع إمكانية طرح الأسئلة والتفاعل المستمر داخل كل درس.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mb-4">
+                            <i class="fa-solid fa-clipboard-question"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-2">امتحانات وكويزات فورية</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">اختبارات اختيار من متعدد مع تقييم تلقائي فوري ودرجات تظهر للمدرس وال estudiante لحظياً.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-2xl mb-4">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-2">نظام أرباح مالي متكامل</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">اكسب المال مقابل كل طالب يحل امتحاناتك ويشاهد دروسك، مع تتبع دقيق للأرباح وسحبها بكل سهولة.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. SUBJECTS & LESSONS VIEW -->
+        <section id="view-subjects" class="view-section hidden py-12 px-4 max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h2 class="text-3xl font-black text-slate-800">الأقسام والمناهج التعليمية</h2>
+                    <p class="text-slate-500 text-sm mt-1">اختر المادة الدراسية لتصفح الفيديوهات والاختبارات المتاحة</p>
+                </div>
+                <!-- Search & Grade filter -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <input type="text5" id="search-subjects-input" oninput="filterSubjects()" placeholder="ابحث عن مادة أو درس..." class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 w-64">
+                    <select id="filter-grade-dropdown" onchange="filterSubjects()" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500">
+                        <option value="all">جميع الصفوف والمراحل</option>
+                        <option value="الصف الرابع الابتدائي">الصف الرابع الابتدائي</option>
+                        <option value="الصف الخامس الابتدائي">الصف الخامس الابتدائي</option>
+                        <option value="الصف السادس الابتدائي">الصف السادس الابتدائي</option>
+                        <option value="الصف الأول الإعدادي">الصف الأول الإعدادي</option>
+                        <option value="الصف الثاني الإعدادي">الصف الثاني الإعدادي</option>
+                        <option value="الصف الثالث الإعدادي">الصف الثالث الإعدادي</option>
+                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                        <option value="الجامعات والكليات">الجامعات والكليات</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Subject Categories List -->
+            <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Rendered by JS -->
+            </div>
+        </section>
+
+        <!-- 3. LESSON DETAILS & PLAYER VIEW -->
+        <section id="view-lesson-detail" class="view-section hidden py-12 px-4 max-w-7xl mx-auto">
+            <button onclick="navigateTo('subjects')" class="mb-6 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-sm transition flex items-center gap-2 w-fit">
+                <i class="fa-solid fa-arrow-right"></i> العودة للأقسام والمناهج
+            </button>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Video & Content Player -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video relative flex items-center justify-center">
+                        <!-- Simulated Embedded Video (YouTube or MP4) -->
+                        <div id="video-player-container" class="w-full h-full flex flex-col items-center justify-center text-white p-6 text-center bg-slate-900">
+                            <div class="w-20 h-20 rounded-full bg-brand-600/80 hover:bg-brand-600 flex items-center justify-center text-3xl mb-4 cursor-pointer shadow-xl transition transform hover:scale-105" onclick="playLessonVideo()">
+                                <i class="fa-solid fa-play ml-1"></i>
+                            </div>
+                            <h3 id="player-lesson-title" class="text-xl font-bold">عنوان الدرس</h3>
+                            <p id="player-teacher-name" class="text-slate-400 text-sm mt-1">المعلم الشارح</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <span id="lesson-detail-subject" class="px-3 py-1 bg-brand-50 text-brand-600 font-bold text-xs rounded-full">المادة</span>
+                            <span id="lesson-detail-grade" class="text-xs text-slate-500 font-bold">الصف الدراسي</span>
+                        </div>
+                        <h2 id="lesson-detail-title" class="text-2xl font-bold text-slate-800 mb-3"></h2>
+                        <p id="lesson-detail-desc" class="text-slate-600 text-sm leading-relaxed mb-6"></p>
+
+                        <div class="border-t border-slate-100 pt-6 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center text-slate-700 font-bold text-lg">
+                                    <i class="fa-solid fa-chalkboard-user"></i>
+                                </div>
+                                <div>
+                                    <h4 id="lesson-detail-teacher" class="font-bold text-sm text-slate-800"></h4>
+                                    <p class="text-xs text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check"></i> معلم معتمد بمنصة إدراك</p>
+                                </div>
+                            </div>
+                            <button onclick="triggerQuizForCurrentLesson()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
+                                <i class="fa-solid fa-file-pen"></i> ابدأ امتحان الدرس الآن
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar Quiz / Related Info -->
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-list text-brand-600"></i> اختبارات متعلقة بالدرس
+                        </h3>
+                        <div id="lesson-quizzes-list" class="space-y-3">
+                            <!-- Rendered via JS -->
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-brand-600 to-indigo-700 p-6 rounded-3xl text-white shadow-xl">
+                        <h3 class="font-bold text-lg mb-2"><i class="fa-solid fa-wallet text-amber-300"></i> نظام الأرباح والدعم</h3>
+                        <p class="text-xs text-brand-100 leading-relaxed mb-4">عند إتمامك لهذا الاختبار بنجاح، فإنك تساهم في دعم المعلم وتفعيل أرباح المنصة التعليمية الذكية.</p>
+                        <div class="bg-white/10 p-3 rounded-xl text-center text-xs font-semibold">
+                            أرباح مجزية لكل اختبار يتم حله بنجاح!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. QUIZ / EXAM TAKING VIEW -->
+        <section id="view-quiz" class="view-section hidden py-12 px-4 max-w-3xl mx-auto">
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
+                <div class="bg-gradient-to-r from-brand-600 to-indigo-700 p-6 text-white flex items-center justify-between">
+                    <div>
+                        <span id="quiz-subject-badge" class="px-3 py-1 bg-white/20 rounded-full text-xs font-bold mb-2 inline-block">القسم</span>
+                        <h2 id="quiz-title" class="text-2xl font-bold">اختبار تقييمي</h2>
+                    </div>
+                    <div class="text-left">
+                        <span class="text-xs text-brand-200 block">السؤال</span>
+                        <span id="quiz-progress-text" class="text-lg font-black">1 / 5</span>
+                    </div>
+                </div>
+
+                <div class="p-8">
+                    <div id="quiz-question-container" class="mb-8">
+                        <h3 id="quiz-question-text" class="text-xl font-bold text-slate-800 mb-6 leading-relaxed"></h3>
+                        <div id="quiz-options-list" class="space-y-3">
+                            <!-- Options rendered via JS -->
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-6 border-t border-slate-100">
+                        <button onclick="previousQuizQuestion()" id="quiz-prev-btn" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition hidden">
+                            السؤال السابق
+                        </button>
+                        <div class="mr-auto">
+                            <button onclick="nextQuizQuestion()" id="quiz-next-btn" class="px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-brand-600/30 transition">
+                                السؤال التالي <i class="fa-solid fa-arrow-left mr-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. QUIZ RESULT VIEW -->
+        <section id="view-quiz-result" class="view-section hidden py-16 px-4 max-w-xl mx-auto text-center">
+            <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl">
+                <div id="result-icon-container" class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-inner">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h2 id="result-status-title" class="text-3xl font-black text-slate-800 mb-2">أحسنت نجحت في الاختبار!</h2>
+                <p id="result-status-desc" class="text-slate-500 text-sm mb-6">لقد اجتزت الاختبار بنجاح وتم تسجيل درجاتك وأرباح المعلم بنجاح.</p>
+
+                <div class="bg-slate-50 p-6 rounded-2xl mb-8 grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <span class="text-xs text-slate-400 block mb-1">الدرجة النهائية</span>
+                        <span id="result-score-val" class="text-3xl font-black text-brand-600">8 / 10</span>
+                    </div>
+                    <div class="text-center">
+                        <span class="text-xs text-slate-400 block mb-1">أرباح المنصة والمدرس</span>
+                        <span id="result-earnings-val" class="text-3xl font-black text-emerald-600">+15 ج.م</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <button onclick="navigateTo('subjects')" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition">
+                        العودة للأقسام
+                    </button>
+                    <button onclick="navigateTo('home')" class="flex-1 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-brand-600/30 transition">
+                        الصفحة الرئيسية
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. TEACHERS DIRECTORY VIEW -->
+        <section id="view-teachers" class="view-section hidden py-12 px-4 max-w-7xl mx-auto">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <span class="px-3 py-1 bg-brand-50 text-brand-600 font-bold text-xs rounded-full">نخبة المعلمين الأكفاء</span>
+                <h2 class="text-3xl font-black text-slate-800 mt-2">تعرف على مدرسي منصة إدراك</h2>
+                <p class="text-slate-500 text-sm mt-1">نخبة من أفضل معلمي المواد الدراسية والجامعية في الوطن العربي</p>
+            </div>
+            <div id="teachers-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Rendered by JS -->
+            </div>
+        </section>
+
+        <!-- 7. LEADERBOARD VIEW -->
+        <section id="view-leaderboard" class="view-section hidden py-12 px-4 max-w-4xl mx-auto">
+            <div class="text-center mb-10">
+                <span class="px-3 py-1 bg-amber-50 text-amber-600 font-bold text-xs rounded-full">لوحة الشرف والمتفوقين</span>
+                <h2 class="text-3xl font-black text-slate-800 mt-2">أوائل الطلاب والمختبرين</h2>
+                <p class="text-slate-500 text-sm mt-1">الطلاب الأكثر تفوقاً وحصولاً على الدرجات في اختبارات المنصة</p>
+            </div>
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
+                <div class="p-6 bg-slate-50 border-b border-slate-100 font-bold text-slate-700 grid grid-cols-12 text-sm">
+                    <div class="col-span-2 text-center">المركز</div>
+                    <div class="col-span-6">اسم الطالب</div>
+                    <div class="col-span-4 text-left">مجموع النقاط والدرجات</div>
+                </div>
+                <div id="leaderboard-list" class="divide-y divide-slate-100">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. MONETIZATION / EARNINGS DASHBOARD VIEW -->
+        <section id="view-monetization" class="view-section hidden py-12 px-4 max-w-7xl mx-auto">
+            <div class="bg-gradient-to-br from-emerald-700 to-teal-900 text-white rounded-3xl p-8 mb-10 shadow-2xl relative overflow-hidden">
+                <div class="absolute right-0 bottom-0 opacity-10 translate-x-10 translate-y-10">
+                    <i class="fa-solid fa-wallet text-9xl"></i>
+                </div>
+                <span class="px-3 py-1 bg-emerald-500/30 text-emerald-200 text-xs font-bold rounded-full mb-3 inline-block">نظام الأرباح المالي الذكي</span>
+                <h2 class="text-3xl font-black mb-3">اكسب المال فور تفاعل الطلاب مع المحتوى الخاص بك!</h2>
+                <p class="text-emerald-100 text-sm max-w-2xl leading-relaxed mb-6">
+                    منصة إدراك تضمن أرباحاً حقيقية ومستدامة لكل مدرس وصانع محتوى تعليمي. كلما زاد عدد المشاهدات وكلما حل الطلاب الاختبارات والكويزات الخاصة بك، زادت أرباحك اليومية التي يمكنك سحبها بكل سهولة.
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                        <span class="text-xs text-emerald-200 block mb-1">أرباحك الإجمالية الحالية</span>
+                        <span id="platform-total-earnings" class="text-3xl font-black text-amber-300">1,450 ج.م</span>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                        <span class="text-xs text-emerald-200 block mb-1">عدد الاختبارات المحلولة</span>
+                        <span id="platform-total-quizzes" class="text-3xl font-black text-white">342 امتحان</span>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                        <span class="text-xs text-emerald-200 block mb-1">معدل الربح لكل اختبار</span>
+                        <span class="text-3xl font-black text-emerald-300">5 - 20 ج.م</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Earnings explanation & simulation controls -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-xl text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-brand-600"></i> كيف يتم احتساب الأرباح؟
+                    </h3>
+                    <ul class="space-y-4 text-sm text-slate-600 leading-relaxed">
+                        <li class="flex items-start gap-3">
+                            <span class="w-6 h-6 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
+                            <span><strong>رفع فيديوهات الشرح:</strong> عندما يشاهد الطلاب دروسك وفيديوهاتك المتميزة يزيد معدل ظهورك وتفاعلهم معك.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="w-6 h-6 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
+                            <span><strong>إنشاء الاختبارات والكويزات:</strong> كلما أضفت امتحانات دقيقة واختيار من متعدد، دخل الطلاب لحلها وتوليد الأرباح.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="w-6 h-6 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</span>
+                            <span><strong>سحب الأرباح الفوري:</strong> يمكنك طلب سحب أرباحك في أي وقت عبر وسائل الدفع المتاحة بمجرد تخطي الحد الأدنى للسحب.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-xl text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-hand-holding-dollar text-emerald-600"></i> محاكي سحب الأرباح
+                        </h3>
+                        <p class="text-slate-500 text-sm mb-6">قم بطلب سحب رصيدك الحالي لتجربة عملية سحب الأرباح الفورية من المنصة.</p>
+                        <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-6 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-emerald-700 font-bold block">الرصيد القابل للسحب</span>
+                                <span id="withdrawable-balance" class="text-2xl font-black text-emerald-800">1,450 ج.م</span>
+                            </div>
+                            <button onclick="requestWithdrawal()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition">
+                                سحب الأرباح الآن
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-400 text-center">
+                        <i class="fa-solid fa-shield-halved text-brand-600"></i> معاملات مالية آمنة ومضمونة 100% عبر منصة إدراك التعليمية
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. USER DASHBOARD (TEACHER / STUDENT) VIEW -->
+        <section id="view-dashboard" class="view-section hidden py-12 px-4 max-w-7xl mx-auto">
+            <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div id="dash-user-avatar" class="w-20 h-20 bg-brand-600 text-white rounded-2xl flex items-center justify-center text-3xl font-black shadow-lg shadow-brand-600/30">
+                        م
+                    </div>
+                    <div>
+                        <h2 id="dash-user-name" class="text-2xl font-black text-slate-800">اسم المستخدم</h2>
+                        <p id="dash-user-meta" class="text-slate-500 text-sm mt-1">الصف أو التخصص</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="dash-role-badge" class="px-4 py-2 bg-brand-50 text-brand-600 font-bold rounded-xl text-sm">نوع الحساب</span>
+                </div>
+            </div>
+
+            <!-- TEACHER SPECIFIC DASHBOARD CONTROLS -->
+            <div id="teacher-dashboard-panel" class="space-y-8 hidden">
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs text-slate-400 block mb-1">فيديوهات الشرح المرفوعة</span>
+                        <span id="teacher-stat-videos" class="text-3xl font-black text-brand-600">4 دروس</span>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs text-slate-400 block mb-1">الاختبارات المنشأة</span>
+                        <span id="teacher-stat-quizzes" class="text-3xl font-black text-indigo-600">3 اختبارات</span>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs text-slate-400 block mb-1">إجمالي الأرباح المكتسبة</span>
+                        <span id="teacher-stat-earnings" class="text-3xl font-black text-emerald-600">1,450 ج.م</span>
+                    </div>
+                </div>
+
+                <!-- Upload Video & Create Quiz Forms -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Upload Video Form -->
+                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-xl text-slate-800 mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up text-brand-600"></i> رفع فيديو شرح جديد
+                        </h3>
+                        <form onsubmit="handleUploadVideo(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">عنوان الدرس</label>
+                                <input type="text5" id="upload-video-title" required placeholder="مثال: شرح قواعد النحو البسيط" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">المادة الدراسية</label>
+                                    <select id="upload-video-subject" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 bg-white">
+                                        <option value="اللغة العربية">اللغة العربية</option>
+                                        <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
+                                        <option value="الدراسات الاجتماعية">الدراسات الاجتماعية</option>
+                                        <option value="التاريخ">التاريخ</option>
+                                        <option value="الرياضيات">الرياضيات</option>
+                                        <option value="العلوم">العلوم</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">الصف الدراسي المستهدف</label>
+                                    <select id="upload-video-grade" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 bg-white">
+                                        <option value="الصف الرابع الابتدائي">الصف الرابع الابتدائي</option>
+                                        <option value="الصف الخامس الابتدائي">الصف الخامس الابتدائي</option>
+                                        <option value="الصف السادس الابتدائي">الصف السادس الابتدائي</option>
+                                        <option value="الصف الأول الإعدادي">الصف الأول الإعدادي</option>
+                                        <option value="الصف الثاني الإعدادي">الصف الثاني الإعدادي</option>
+                                        <option value="الصف الثالث الإعدادي">الصف الثالث الإعدادي</option>
+                                        <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                                        <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                                        <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                                        <option value="الجامعات والكليات">الجامعات والكليات</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">وصف الدرس</label>
+                                <textarea id="upload-video-desc" rows="3" required placeholder="اكتب نبذة مختصرة عن محتوى الدرس..." class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500"></textarea>
+                            </div>
+                            <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-600/30 transition">
+                                نشر فيديو الشرح الآن
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Create Quiz Form -->
+                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-xl text-slate-800 mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-file-circle-plus text-emerald-600"></i> إنشاء اختبار / كويز جديد
+                        </h3>
+                        <form onsubmit="handleCreateQuiz(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">عنوان الاختبار</label>
+                                <input type="text5" id="create-quiz-title" required placeholder="مثال: امتحان شامل في الجبر والهندسة" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">المادة</label>
+                                    <select id="create-quiz-subject" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 bg-white">
+                                        <option value="اللغة العربية">اللغة العربية</option>
+                                        <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
+                                        <option value="الدراسات الاجتماعية">الدراسات الاجتماعية</option>
+                                        <option value="التاريخ">التاريخ</option>
+                                        <option value="الرياضيات">الرياضيات</option>
+                                        <option value="العلوم">العلوم</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">درجة النجاح (%)</label>
+                                    <input type="number" id="create-quiz-passing" required value="50" min="10" max="100" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">أضف سؤلاً مع الخيارات (اختيار من متعدد)</label>
+                                <input type="text5" id="quiz-q-text" required placeholder="نص السؤال (مثال: ما هي عاصمة مصر؟)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm mb-2 focus:outline-none focus:border-brand-500">
+                                <div class="grid grid-cols-2 gap-2 mb-2">
+                                    <input type="text5" id="quiz-opt-0" required placeholder="الخيار أ" class="px-3 py-2 border border-slate-200 rounded-xl text-xs">
+                                    <input type="text5" id="quiz-opt-1" required placeholder="الخيار ب" class="px-3 py-2 border border-slate-200 rounded-xl text-xs">
+                                    <input type="text5" id="quiz-opt-2" required placeholder="الخيار ج" class="px-3 py-2 border border-slate-200 rounded-xl text-xs">
+                                    <input type="text5" id="quiz-opt-3" required placeholder="الخيار د" class="px-3 py-2 border border-slate-200 rounded-xl text-xs">
+                                </div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">رقم الإجابة الصحيحة (0 إلى 3)</label>
+                                <input type="number" id="quiz-correct-ans" required min="0" max="3" value="0" class="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm">
+                            </div>
+                            <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition">
+                                نشر الاختبار للطلاب
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STUDENT SPECIFIC DASHBOARD PANEL -->
+            <div id="student-dashboard-panel" class="space-y-8 hidden">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs text-slate-400 block mb-1">الاختبارات التي تم حلها</span>
+                        <span id="student-stat-quizzes" class="text-3xl font-black text-brand-600">5 اختبارات</span>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs text-slate-400 block mb-1">معدل النجاح والدرجات</span>
+                        <span id="student-stat-score" class="text-3xl font-black text-emerald-600">92%</span>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs text-slate-400 block mb-1">الصف الدراسي الحالي</span>
+                        <span id="student-stat-grade" class="text-xl font-black text-indigo-600 truncate block">الصف الثالث الثانوي</span>
+                    </div>
+                </div>
+
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-xl text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-brand-600"></i> سجل الاختبارات والنشاط الأكاديمي
+                    </h3>
+                    <div id="student-activity-list" class="space-y-3">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 text-white pt-16 pb-12 mt-20 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+            <div class="space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-bold">
+                        <i class="fa-solid fa-graduation-cap text-lg"></i>
+                    </div>
+                    <h3 class="text-lg font-black tracking-tight">منصة إدراك التعليمية</h3>
+                </div>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                    منصة متكاملة للمدرسين والطلاب تتيح رفع الفيديوهات، شرح المناهج، حل الامتحانات، وجني الأرباح بكل سهولة واحترافية.
+                </p>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm text-white mb-4 uppercase tracking-wider">الأقسام الدراسية</h4>
+                <ul class="space-y-2 text-xs text-slate-400">
+                    <li><a href="#" onclick="navigateTo('subjects')" class="hover:text-white transition">اللغة العربية والآداب</a></li>
+                    <li><a href="#" onclick="navigateTo('subjects')" class="hover:text-white transition">اللغة الإنجليزية</a></li>
+                    <li><a href="#" onclick="navigateTo('subjects')" class="hover:text-white transition">الدراسات الاجتماعية</a></li>
+                    <li><a href="#" onclick="navigateTo('subjects')" class="hover:text-white transition">التاريخ والحضارات</a></li>
+                    <li><a href="#" onclick="navigateTo('subjects')" class="hover:text-white transition">الرياضيات والعلوم التطبيقية</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm text-white mb-4 uppercase tracking-wider">روابط سريعة</h4>
+                <ul class="space-y-2 text-xs text-slate-400">
+                    <li><a href="#" onclick="navigateTo('home')" class="hover:text-white transition">الرئيسية</a></li>
+                    <li><a href="#" onclick="navigateTo('teachers')" class="hover:text-white transition">نخبة المعلمين</a></li>
+                    <li><a href="#" onclick="navigateTo('leaderboard')" class="hover:text-white transition">لوحة الشرف والمتفوقين</a></li>
+                    <li><a href="#" onclick="navigateTo('monetization')" class="hover:text-white transition">نظام الأرباح المالية</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm text-white mb-4 uppercase tracking-wider">تواصل ودعم</h4>
+                <p class="text-xs text-slate-400 mb-4 leading-relaxed">انضم إلى مجتمع إدراك التعليمي وابدأ رحلتك الأكاديمية اليوم.</p>
+                <div class="flex gap-3">
+                    <span class="w-9 h-9 bg-slate-800 hover:bg-brand-600 rounded-xl flex items-center justify-center text-white transition cursor-pointer"><i class="fa-brands fa-facebook-f"></i></span>
+                    <span class="w-9 h-9 bg-slate-800 hover:bg-brand-600 rounded-xl flex items-center justify-center text-white transition cursor-pointer"><i class="fa-brands fa-twitter"></i></span>
+                    <span class="w-9 h-9 bg-slate-800 hover:bg-brand-600 rounded-xl flex items-center justify-center text-white transition cursor-pointer"><i class="fa-brands fa-youtube"></i></span>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
+            <p>جميع الحقوق محفوظة &copy; 2026 منصة إدراك التعليمية الشاملة.</p>
+            <p class="mt-2 sm:mt-0">تطوير منصة المدرسين والطلاب الذكية</p>
+        </div>
+    </footer>
+
+    <script>
+        const SUBJECTS_DATA = [
+            { id: 'arabic', name: 'اللغة العربية', icon: 'fa-book-open', color: 'from-amber-500 to-orange-600', desc: 'قواعد النحو، البلاغة، النصوص الأدبية، والامتحانات الشاملة.', grade: 'جميع الصفوف والمراحل', lessonsCount: 18, teachersCount: 12 },
+            { id: 'english', name: 'اللغة الإنجليزية', icon: 'fa-language', color: 'from-blue-500 to-indigo-600', desc: 'Grammar, Vocabulary, Reading comprehension, and Speaking tests.', grade: 'جميع الصفوف والمراحل', lessonsCount: 24, teachersCount: 15 },
+            { id: 'social', name: 'الدراسات الاجتماعية', icon: 'fa-earth-americas', color: 'from-emerald-500 to-teal-600', desc: 'الجغرافيا، البيئة، الخرائط، وتطبيقات الاختبارات التفاعلية.', grade: 'المرحلة الابتدائية والإعدادية', lessonsCount: 14, teachersCount: 8 },
+            { id: 'history', name: 'التاريخ', icon: 'fa-monument', color: 'from-amber-700 to-yellow-800', desc: 'التاريخ المصري والعربي والعالمي، الحضارات القديمة والحديثة.', grade: 'المرحلة الإعدادية والثانوية', lessonsCount: 16, teachersCount: 9 },
+            { id: 'math', name: 'الرياضيات', icon: 'fa-calculator', color: 'from-purple-600 to-pink-600', desc: 'الجبر، الهندسة، التفاضل والتكامل، وحساب المثلثات للجامعات والمدارس.', grade: 'جميع الصفوف حتى الجامعات', lessonsCount: 30, teachersCount: 20 },
+            { id: 'science', name: 'العلوم', icon: 'fa-atom', color: 'from-cyan-500 to-blue-600', desc: 'الفيزياء، الكيمياء، الأحياء، والتجارب العلمية المبسطة والمتقدمة.', grade: 'جميع الصفوف حتى الجامعات', lessonsCount: 22, teachersCount: 14 }
+        ];
+
+        let MOCK_LESSONS = [
+            { id: 'l1', subjectId: 'math', subject: 'الرياضيات', title: 'شرح التفاضل وتطبيقاته للثانوية العامة والجامعات', teacher: 'أ. أحمد الصفتي', grade: 'الصف الثالث الثانوي', desc: 'درس شامل ومفصل يشرح قواعد الاشتقاق، المعدلات الزمنية المرتبطة، وتطبيقات القيم العظمى والصغرى مع أمثلة امتحان الثانوية العامة.', videoUrl: '#' },
+            { id: 'l2', subjectId: 'arabic', subject: 'اللغة العربية', title: 'أسرار إعراب المبتدأ والخبر والجمل الإنشائية', teacher: 'د. فاطمة الزهراء', grade: 'الصف الأول الإعدادي', desc: 'كيف تعرب أي كلمة في اللغة العربية بسهولة تامة؟ شرح تفصيلي لعلامات الإعراب الأصلية والفرعية مع تدريبات مكثفة.', videoUrl: '#' },
+            { id: 'l3', subjectId: 'english', subject: 'اللغة الإنجليزية', title: 'Mastering Active and Passive Voice in English', teacher: 'Mr. John Smith', grade: 'الجامعات والكليات', desc: 'Comprehensive guide to transforming sentences from Active to Passive across all 12 English verb tenses.', videoUrl: '#' },
+            { id: 'l4', subjectId: 'science', subject: 'العلوم', title: 'التفاعلات الكيميائية والمعادلات الأيونية', teacher: 'أ. محمود إبراهيم', grade: 'الصف الثالث الإعدادي', desc: 'شرح مبسط لتفاعلات الاحلال البسيط والمزدوج مع تجارب معملية افتراضية واختبار فوري.', videoUrl: '#' },
+            { id: 'l5', subjectId: 'history', subject: 'التاريخ', title: 'الحملة الفرنسية على مصر والشام ونتائجها', teacher: 'أ. مصطفى كامل', grade: 'الصف الثالث الثانوي', desc: 'تحليل دقيق لأسباب الحملة الفرنسية، معركة أبوقير البحرية، وكتاب وصف مصر.', videoUrl: '#' }
+        ];
+
+        let MOCK_QUIZZES = [
+            { id: 'q1', title: 'اختبار التفاضل الشامل', subject: 'الرياضيات', passing: 60, questions: [
+                { q: 'ما هو مشتقة الدالة $f(x) = x^2$؟', options: ['2x', 'x^2', 'x', '2'], correct: 0 },
+                { q: 'معدل التغير يمثل هندسياً:', options: ['ميل المماس', 'مساحة المنحنى', 'طول القوس', 'النقطة الحرجة'], correct: 0 }
+            ]},
+            { id: 'q2', title: 'اختبار قواعد النحو والإعراب', subject: 'اللغة العربية', passing: 50, questions: [
+                { q: 'المبتدأ والخبر دائماً:', options: ['مرفوعان', 'منصوبان', 'مجروران', 'جازمان'], correct: 0 },
+                { q: 'علامة رفع المثنى هي:', options: ['الالف', 'الواو', 'الضمة', 'الكسرة'], correct: 0 }
+            ]}
+        ];
+
+        let MOCK_TEACHERS = [
+            { name: 'أ. أحمد الصفتي', subject: 'الرياضيات المتقدمة', rating: '4.9', students: '+4,200 طالب', avatar: 'أص' },
+            { name: 'د. فاطمة الزهراء', subject: 'اللغة العربية والآداب', rating: '4.8', students: '+3,800 طالب', avatar: 'فز' },
+            { name: 'Mr. John Smith', subject: 'English & Linguistics', rating: '5.0', students: '+5,100 طالب', avatar: 'JS' },
+            { name: 'أ. محمود إبراهيم', subject: 'العلوم والفيزياء', rating: '4.7', students: '+2,900 طالب', avatar: 'مي' },
+            { name: 'أ. مصطفى كامل', subject: 'التاريخ والحضارات', rating: '4.9', students: '+3,400 طالب', avatar: 'مك' }
+        ];
+
+        let MOCK_LEADERBOARD = [
+            { rank: 1, name: 'يوسف محمد عبد الله', score: '985 نقطة', badge: 'الأول على الجمهورية' },
+            { rank: 2, name: 'آية أحمد محمود', score: '950 نقطة', badge: 'متفوق متميز' },
+            { rank: 3, name: 'عبد الرحمن خالد', score: '920 نقطة', badge: 'متفوق متميز' },
+            { rank: 4, name: 'سارة إبراهيم حسن', score: '890 نقطة', badge: 'نشط' },
+            { rank: 5, name: 'محمود رجب علي', score: '860 نقطة', badge: 'نشط' }
+        ];
+
+        // Global Application State
+        let currentUser = null; // { name, email, role, grade }
+        let currentAuthTab = 'login';
+        let selectedRole = 'student';
+        let platformEarnings = 1450;
+        let totalQuizzesSolved = 342;
+        
+        let activeQuiz = null;
+        let currentQuestionIdx = 0;
+        let userQuizScore = 0;
+
+        // Initialize App on Window Load
+        window.onload = function() {
+            // Check LocalStorage for saved user session
+            const savedUser = localStorage.getItem('edrak_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateAuthUI();
+            }
+            renderHomeSubjects();
+            renderSubjectsGrid();
+            renderTeachersGrid();
+            renderLeaderboard();
+        };
+
+        function navigateTo(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById('view-' + viewId);
+            if (target) {
+                target.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-2xl shadow-xl text-white font-bold text-sm pointer-events-auto flex items-center gap-3 transition transform translate-y-2 opacity-0 animate-fade-in ${type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'} text-lg"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function openAuthModal(tab = 'login') {
+            currentAuthTab = tab;
+            document.getElementById('auth-modal').classList.remove('hidden');
+            switchAuthTab(tab);
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        function switchAuthTab(tab) {
+            currentAuthTab = tab;
+            const loginBtn = document.getElementById('tab-login-btn');
+            const regBtn = document.getElementById('tab-register-btn');
+            const nameField = document.getElementById('name-field-wrapper');
+            const title = document.getElementById('auth-modal-title');
+            const submitBtn = document.getElementById('auth-submit-btn');
+
+            if (tab === 'login') {
+                loginBtn.className = 'flex-1 py-2 text-sm font-bold rounded-lg transition bg-white text-brand-600 shadow-sm';
+                regBtn.className = 'flex-1 py-2 text-sm font-bold rounded-lg transition text-slate-600 hover:text-slate-900';
+                nameField.classList.add('hidden');
+                title.innerText = 'تسجيل الدخول إلى إدراك';
+                submitBtn.innerText = 'تسجيل الدخول';
+            } else {
+                regBtn.className = 'flex-1 py-2 text-sm font-bold rounded-lg transition bg-white text-brand-600 shadow-sm';
+                loginBtn.className = 'flex-1 py-2 text-sm font-bold rounded-lg transition text-slate-600 hover:text-slate-900';
+                nameField.classList.remove('hidden');
+                title.innerText = 'إنشاء حساب جديد في إدراك';
+                submitBtn.innerText = 'متابعة التسجيل';
+            }
+        }
+
+        function socialLogin(provider) {
+            currentUser = {
+                name: provider === 'Google' ? 'مستخدم جوجل (أحمد)' : 'مستخدم فيسبوك (محمد)',
+                email: `${provider.toLowerCase()}@edrak-edu.com`,
+                role: null,
+                grade: 'الصف الثالث الثانوي'
+            };
+            closeAuthModal();
+            openRoleGradeModal();
+            showToast(`تم تسجيل الدخول بنجاح عبر ${provider}! يرجى تحديد هويتك.`);
+        }
+
+        function handleAuthSubmit(event) {
+            event.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const name = document.getElementById('auth-name').value || 'مستخدم إدراك';
+
+            currentUser = {
+                name: name,
+                email: email,
+                role: null,
+                grade: 'الصف الثالث الثانوي'
+            };
+
+            closeAuthModal();
+            if (currentAuthTab === 'register') {
+                openRoleGradeModal();
+            } else {
+                currentUser.role = 'student'; // Default for quick login
+                finishLoginSession();
+            }
+        }
+
+        function openRoleGradeModal() {
+            document.getElementById('role-grade-modal').classList.remove('hidden');
+        }
+
+        function closeRoleGradeModal() {
+            document.getElementById('role-grade-modal').classList.add('hidden');
+        }
+
+        function selectRoleOption(role) {
+            selectedRole = role;
+            const studentCard = document.getElementById('role-card-student');
+            const teacherCard = document.getElementById('role-card-teacher');
+            const gradeContainer = document.getElementById('grade-selection-container');
+
+            if (role === 'student') {
+                studentCard.className = 'cursor-pointer border-2 border-brand-500 bg-brand-50/50 rounded-2xl p-4 text-center transition hover:shadow-md relative';
+                studentCard.querySelector('.check-icon').classList.remove('hidden');
+                teacherCard.className = 'cursor-pointer border-2 border-slate-200 bg-white rounded-2xl p-4 text-center transition hover:shadow-md relative';
+                teacherCard.querySelector('.check-icon').classList.add('hidden');
+                gradeContainer.classList.remove('hidden');
+            } else {
+                teacherCard.className = 'cursor-pointer border-2 border-brand-500 bg-brand-50/50 rounded-2xl p-4 text-center transition hover:shadow-md relative';
+                teacherCard.querySelector('.check-icon').classList.remove('hidden');
+                studentCard.className = 'cursor-pointer border-2 border-slate-200 bg-white rounded-2xl p-4 text-center transition hover:shadow-md relative';
+                studentCard.querySelector('.check-icon').classList.add('hidden');
+                gradeContainer.classList.add('hidden');
+            }
+        }
+
+        function saveRoleAndGrade() {
+            if (!currentUser) currentUser = { name: 'مستخدم إدراك', email: 'user@edrak.com' };
+            currentUser.role = selectedRole;
+            if (selectedRole === 'student') {
+                currentUser.grade = document.getElementById('user-grade-level').value;
+            } else {
+                currentUser.grade = 'معلم معتمد';
+            }
+            closeRoleGradeModal();
+            finishLoginSession();
+        }
+
+        function finishLoginSession() {
+            localStorage.setItem('edrak_user', JSON.stringify(currentUser));
+            updateAuthUI();
+            showToast(`أهلاً بك يا ${currentUser.name}! تم تسجيل دخولك بنجاح.`);
+            navigateTo('home');
+        }
+
+        function updateAuthUI() {
+            const guestAct = document.getElementById('guest-actions');
+            const userAct = document.getElementById('user-logged-actions');
+            if (currentUser) {
+                guestAct.classList.add('hidden');
+                userAct.classList.remove('hidden');
+                document.getElementById('nav-user-name').innerText = currentUser.name;
+                document.getElementById('nav-user-role').innerText = currentUser.role === 'teacher' ? 'مدرس معتمد' : currentUser.grade;
+            } else {
+                guestAct.classList.remove('hidden');
+                userAct.classList.add('hidden');
+            }
+        }
+
+        function logoutUser() {
+            currentUser = null;
+            localStorage.removeItem('edrak_user');
+            updateAuthUI();
+            showToast('تم تسجيل الخروج بنجاح.', 'error');
+            navigateTo('home');
+        }
+
+        function renderHomeSubjects() {
+            const container = document.getElementById('home-subjects-grid');
+            container.innerHTML = SUBJECTS_DATA.slice(0, 6).map(sub => `
+                <div onclick="filterSubjectDirect('${sub.name}')" class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition cursor-pointer group">
+                    <div class="w-14 h-14 bg-gradient-to-tr ${sub.color} rounded-2xl flex items-center justify-center text-white text-2xl mb-4 group-hover:scale-110 transition shadow-md">
+                        <i class="fa-solid ${sub.icon}"></i>
+                    </div>
+                    <h3 class="font-bold text-xl text-slate-800 mb-2">${sub.name}</h3>
+                    <p class="text-slate-500 text-xs leading-relaxed mb-4">${sub.desc}</p>
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-400 pt-4 border-t border-slate-100">
+                        <span><i class="fa-solid fa-video text-brand-600 ml-1"></i> ${sub.lessonsCount} درس شرح</span>
+                        <span class="text-brand-600 group-hover:translate-x-[-4px] transition">تصفح القسم <i class="fa-solid fa-arrow-left"></i></span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderSubjectsGrid() {
+            const container = document.getElementById('subjects-grid');
+            container.innerHTML = MOCK_LESSONS.map(lesson => `
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-3 py-1 bg-brand-50 text-brand-600 font-bold text-xs rounded-full">${lesson.subject}</span>
+                            <span class="text-xs text-slate-400 font-bold">${lesson.grade}</span>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-2">${lesson.title}</h3>
+                        <p class="text-slate-500 text-xs leading-relaxed mb-4">${lesson.desc}</p>
+                    </div>
+                    <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+                                <i class="fa-solid fa-chalkboard-user"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-700">${lesson.teacher}</span>
+                        </div>
+                        <button onclick="openLessonDetail('${lesson.id}')" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-md transition">
+                            شاهد الدرس
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterSubjectDirect(subName) {
+            document.getElementById('search-subjects-input').value = subName;
+            navigateTo('subjects');
+            filterSubjects();
+        }
+
+        function filterSubjects() {
+            const query = document.getElementById('search-subjects-input').value.toLowerCase();
+            const gradeFilter = document.getElementById('filter-grade-dropdown').value;
+            const container = document.getElementById('subjects-grid');
+
+            const filtered = MOCK_LESSONS.filter(l => {
+                const matchQuery = l.title.toLowerCase().includes(query) || l.subject.toLowerCase().includes(query) || l.teacher.toLowerCase().includes(query);
+                const matchGrade = gradeFilter === 'all' || l.grade === gradeFilter;
+                return matchQuery && matchGrade;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400">لا توجد نتائج مطابقة لبحثك. جرب كلمات بحث أخرى.</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(lesson => `
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-3 py-1 bg-brand-50 text-brand-600 font-bold text-xs rounded-full">${lesson.subject}</span>
+                            <span class="text-xs text-slate-400 font-bold">${lesson.grade}</span>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-2">${lesson.title}</h3>
+                        <p class="text-slate-500 text-xs leading-relaxed mb-4">${lesson.desc}</p>
+                    </div>
+                    <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+                                <i class="fa-solid fa-chalkboard-user"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-700">${lesson.teacher}</span>
+                        </div>
+                        <button onclick="openLessonDetail('${lesson.id}')" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-md transition">
+                            شاهد الدرس
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        let currentLessonId = null;
+        function openLessonDetail(lessonId) {
+            const lesson = MOCK_LESSONS.find(l => l.id === lessonId);
+            if (!lesson) return;
+            currentLessonId = lessonId;
+
+            document.getElementById('lesson-detail-subject').innerText = lesson.subject;
+            document.getElementById('lesson-detail-grade').innerText = lesson.grade;
+            document.getElementById('lesson-detail-title').innerText = lesson.title;
+            document.getElementById('lesson-detail-desc').innerText = lesson.desc;
+            document.getElementById('lesson-detail-teacher').innerText = lesson.teacher;
+            document.getElementById('player-lesson-title').innerText = lesson.title;
+            document.getElementById('player-teacher-name').innerText = lesson.teacher;
+
+            // Render related quizzes
+            const quizzesList = document.getElementById('lesson-quizzes-list');
+            const matchingQuizzes = MOCK_QUIZZES.filter(q => q.subject === lesson.subject);
+            if (matchingQuizzes.length > 0) {
+                quizzesList.innerHTML = matchingQuizzes.map(q => `
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-800">${q.title}</h4>
+                            <p class="text-[10px] text-slate-500 mt-0.5">${q.questions.length} أسئلة - درجة النجاح ${q.passing}%</p>
+                        </div>
+                        <button onclick="startQuiz('${q.id}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition">
+                            بدء الامتحان
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                quizzesList.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">لا توجد اختبارات مضافة لهذا الدرس حالياً.</p>`;
+            }
+
+            navigateTo('lesson-detail');
+        }
+
+        function playLessonVideo() {
+            showToast('جاري تشغيل فيديو الشرح بجودة عالية HD...');
+            const container = document.getElementById('video-player-container');
+            container.innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center bg-black text-white relative">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent flex items-end p-6">
+                        <div class="flex items-center justify-between w-full">
+                            <span class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-circle-dot animate-pulse"></i> بث الشرح المباشر يعمل</span>
+                            <button onclick="playLessonVideo()" class="text-xs underline text-slate-300">إعادة التشغيل</button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-circle-play text-6xl text-brand-500 mb-2 animate-bounce"></i>
+                    <p class="text-sm font-bold">يعمل فيديو الشرح الآن بسلاسة تامة</p>
+                </div>
+            `;
+        }
+
+        function triggerQuizForCurrentLesson() {
+            if (MOCK_QUIZZES.length > 0) {
+                startQuiz(MOCK_QUIZZES[0].id);
+            } else {
+                showToast('عذراً، لا يوجد اختبار متاح لهذا الدرس بعد.', 'error');
+            }
+        }
+
+        function startQuiz(quizId) {
+            activeQuiz = MOCK_QUIZZES.find(q => q.id === quizId) || MOCK_QUIZZES[0];
+            currentQuestionIdx = 0;
+            userQuizScore = 0;
+            renderQuizQuestion();
+            navigateTo('quiz');
+        }
+
+        function renderQuizQuestion() {
+            const q = activeQuiz.questions[currentQuestionIdx];
+            document.getElementById('quiz-subject-badge').innerText = activeQuiz.subject;
+            document.getElementById('quiz-title').innerText = activeQuiz.title;
+            document.getElementById('quiz-progress-text').innerText = `${currentQuestionIdx + 1} / ${activeQuiz.questions.length}`;
+            document.getElementById('quiz-question-text').innerText = q.q;
+
+            const optsList = document.getElementById('quiz-options-list');
+            optsList.innerHTML = q.options.map((opt, idx) => `
+                <label class="flex items-center gap-3 p-4 border border-slate-200 rounded-2xl cursor-pointer hover:bg-brand-50/50 hover:border-brand-500 transition">
+                    <input type="radio" name="quiz-option" value="${idx}" class="w-4 h-4 text-brand-600 focus:ring-brand-500">
+                    <span class="text-sm font-bold text-slate-700">${opt}</span>
+                </label>
+            `).join('');
+
+            const prevBtn = document.getElementById('quiz-prev-btn');
+            if (currentQuestionIdx > 0) prevBtn.classList.remove('hidden');
+            else prevBtn.classList.add('hidden');
+        }
+
+        function previousQuizQuestion() {
+            if (currentQuestionIdx > 0) {
+                currentQuestionIdx--;
+                renderQuizQuestion();
+            }
+        }
+
+        function nextQuizQuestion() {
+            const selected = document.querySelector('input[name="quiz-option"]:checked');
+            if (!selected) {
+                showToast('يرجى اختيار إجابة قبل الانتقال للسؤال التالي.', 'error');
+                return;
+            }
+
+            const chosenAns = parseInt(selected.value);
+            if (chosenAns === activeQuiz.questions[currentQuestionIdx].correct) {
+                userQuizScore += 10;
+            }
+
+            currentQuestionIdx++;
+            if (currentQuestionIdx < activeQuiz.questions.length) {
+                renderQuizQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            totalQuizzesSolved++;
+            const earnedMoney = Math.floor(Math.random() * 15) + 10;
+            platformEarnings += earnedMoney;
+
+            document.getElementById('result-score-val').innerText = `${userQuizScore} / ${activeQuiz.questions.length * 10}`;
+            document.getElementById('result-earnings-val').innerText = `+${earnedMoney} ج.م`;
+            
+            navigateTo('quiz-result');
+            showToast('تهانينا! تم إتمام الاختبار واحتساب الأرباح بنجاح.');
+        }
+
+        function renderTeachersGrid() {
+            const container = document.getElementById('teachers-grid');
+            container.innerHTML = MOCK_TEACHERS.map(t => `
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center">
+                    <div class="w-20 h-20 bg-brand-100 text-brand-700 rounded-2xl flex items-center justify-center text-2xl font-black mx-auto mb-4 shadow-md">
+                        ${t.avatar}
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-800">${t.name}</h3>
+                    <p class="text-xs text-brand-600 font-bold mt-1">${t.subject}</p>
+                    <div class="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
+                        <span><i class="fa-solid fa-star text-amber-400"></i> ${t.rating}</span>
+                        <span><i class="fa-solid fa-users text-brand-600"></i> ${t.students}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderLeaderboard() {
+            const container = document.getElementById('leaderboard-list');
+            container.innerHTML = MOCK_LEADERBOARD.map(item => `
+                <div class="p-4 grid grid-cols-12 items-center text-sm">
+                    <div class="col-span-2 text-center font-black ${item.rank === 1 ? 'text-amber-500 text-lg' : 'text-slate-700'}">
+                        ${item.rank === 1 ? '<i class="fa-solid fa-crown ml-1"></i>' : ''} #${item.rank}
+                    </div>
+                    <div class="col-span-6 font-bold text-slate-800 flex items-center gap-2">
+                        <span>${item.name}</span>
+                        <span class="text-[10px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full">${item.badge}</span>
+                    </div>
+                    <div class="col-span-4 text-left font-black text-emerald-600">
+                        ${item.score}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openUserDashboard() {
+            if (!currentUser) {
+                openAuthModal('login');
+                return;
+            }
+
+            document.getElementById('dash-user-name').innerText = currentUser.name;
+            document.getElementById('dash-user-meta').innerText = currentUser.role === 'teacher' ? 'مدرس ومطور محتوى تعليمي' : currentUser.grade;
+            document.getElementById('dash-role-badge').innerText = currentUser.role === 'teacher' ? 'معلم معتمد' : 'طالب مجتهد';
+            document.getElementById('dash-user-avatar').innerText = currentUser.name.charAt(0);
+
+            const teacherPanel = document.getElementById('teacher-dashboard-panel');
+            const studentPanel = document.getElementById('student-dashboard-panel');
+
+            if (currentUser.role === 'teacher') {
+                teacherPanel.classList.remove('hidden');
+                studentPanel.classList.add('hidden');
+            } else {
+                teacherPanel.classList.add('hidden');
+                studentPanel.classList.remove('hidden');
+                renderStudentActivity();
+            }
+
+            navigateTo('dashboard');
+        }
+
+        function handleUploadVideo(event) {
+            event.preventDefault();
+            const title = document.getElementById('upload-video-title').value;
+            const subject = document.getElementById('upload-video-subject').value;
+            const grade = document.getElementById('upload-video-grade').value;
+            const desc = document.getElementById('upload-video-desc').value;
+
+            const newLesson = {
+                id: 'l_' + Date.now(),
+                subjectId: 'custom',
+                subject: subject,
+                title: title,
+                teacher: currentUser ? currentUser.name : 'أستاذ المادة',
+                grade: grade,
+                desc: desc,
+                videoUrl: '#'
+            };
+
+            MOCK_LESSONS.unshift(newLesson);
+            renderSubjectsGrid();
+            renderHomeSubjects();
+            showToast('تم رفع فيديو الشرح ونشره على المنصة بنجاح!');
+            event.target.reset();
+        }
+
+        function handleCreateQuiz(event) {
+            event.preventDefault();
+            const title = document.getElementById('create-quiz-title').value;
+            const subject = document.getElementById('create-quiz-subject').value;
+            const passing = parseInt(document.getElementById('create-quiz-passing').value);
+            const qText = document.getElementById('quiz-q-text').value;
+            const opt0 = document.getElementById('quiz-opt-0').value;
+            const opt1 = document.getElementById('quiz-opt-1').value;
+            const opt2 = document.getElementById('quiz-opt-2').value;
+            const opt3 = document.getElementById('quiz-opt-3').value;
+            const correct = parseInt(document.getElementById('quiz-correct-ans').value);
+
+            const newQuiz = {
+                id: 'q_' + Date.now(),
+                title: title,
+                subject: subject,
+                passing: passing,
+                questions: [
+                    { q: qText, options: [opt0, opt1, opt2, opt3], correct: correct }
+                ]
+            };
+
+            MOCK_QUIZZES.unshift(newQuiz);
+            showToast('تم إنشاء الاختبار ونشره للطلاب بنجاح!');
+            event.target.reset();
+        }
+
+        function renderStudentActivity() {
+            const container = document.getElementById('student-activity-list');
+            container.innerHTML = `
+                <div class="p-4 bg-slate-50 rounded-2xl flex items-center justify-between text-sm">
+                    <div>
+                        <h4 class="font-bold text-slate-800">اختبار الرياضيات الشامل</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">تم الحل وحصلت على تقدير ممتاز</p>
+                    </div>
+                    <span class="px-3 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-full">اجتياز 100%</span>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-2xl flex items-center justify-between text-sm">
+                    <div>
+                        <h4 class="font-bold text-slate-800">اختبار قواعد النحو العربي</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">تم الحل بنجاح</p>
+                    </div>
+                    <span class="px-3 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-full">اجتياز 90%</span>
+                </div>
+            `;
+        }
+
+        function requestWithdrawal() {
+            showToast('تم تقديم طلب سحب الأرباح بنجاح. سيتم تحويل المبلغ إلى حسابك خلال 24 ساعة.');
+        }
+    </script>
+</body>
+</html>
